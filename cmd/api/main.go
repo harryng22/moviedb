@@ -9,20 +9,22 @@ import (
 	"os"
 	"time"
 
+	"github.com/harryng22/moviedb/internal/data"
 	_ "github.com/lib/pq"
 )
 
 const version = "1.0.0"
 
-type application struct {
+type Application struct {
 	config Config
 	logger *log.Logger
+	model  data.Model
 }
 
 func main() {
 	logger := log.New(os.Stdout, "", log.Ldate|log.Ltime)
 
-	config, err := LoadConfig("../..")
+	config, err := LoadConfig(".", ".env", "env")
 	if err != nil {
 		logger.Fatal(err)
 	}
@@ -37,9 +39,10 @@ func main() {
 
 	logger.Println("database connection pool established")
 
-	app := &application{
+	app := &Application{
 		config: config,
 		logger: logger,
+		model:  data.NewModel(db),
 	}
 
 	server := &http.Server{

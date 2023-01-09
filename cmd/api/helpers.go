@@ -13,7 +13,7 @@ import (
 	"github.com/spf13/viper"
 )
 
-func (app *application) readIdParam(r *http.Request) (int64, error) {
+func (app *Application) readIdParam(r *http.Request) (int64, error) {
 	params := httprouter.ParamsFromContext(r.Context())
 
 	id, err := strconv.ParseInt(params.ByName("id"), 10, 64)
@@ -26,7 +26,7 @@ func (app *application) readIdParam(r *http.Request) (int64, error) {
 
 type envelope map[string]interface{}
 
-func (app *application) writeJSON(w http.ResponseWriter, status int, data envelope, headers http.Header) error {
+func (app *Application) writeJSON(w http.ResponseWriter, status int, data envelope, headers http.Header) error {
 	js, err := json.Marshal(data)
 	if err != nil {
 		return err
@@ -45,7 +45,7 @@ func (app *application) writeJSON(w http.ResponseWriter, status int, data envelo
 	return nil
 }
 
-func (app *application) readJSON(w http.ResponseWriter, r *http.Request, dst interface{}) error {
+func (app *Application) readJSON(w http.ResponseWriter, r *http.Request, dst interface{}) error {
 	maxBytes := 1_048_576
 	r.Body = http.MaxBytesReader(w, r.Body, int64(maxBytes))
 	decoder := json.NewDecoder(r.Body)
@@ -105,10 +105,10 @@ type Config struct {
 	DbMaxIdleTime  string `mapstructure:"DB_MAX_IDLE_TIME"`
 }
 
-func LoadConfig(path string) (config Config, err error) {
+func LoadConfig(path, fileName, fileType string) (config Config, err error) {
 	viper.AddConfigPath(path)
-	viper.SetConfigName("app")
-	viper.SetConfigType("env")
+	viper.SetConfigName(fileName)
+	viper.SetConfigType(fileType)
 
 	viper.AutomaticEnv()
 

@@ -15,7 +15,7 @@ import (
 
 const version = "1.0.0"
 
-type Application struct {
+type application struct {
 	config Config
 	logger *log.Logger
 	model  data.Model
@@ -24,7 +24,7 @@ type Application struct {
 func main() {
 	logger := log.New(os.Stdout, "", log.Ldate|log.Ltime)
 
-	config, err := LoadConfig(".", ".env", "env")
+	config, err := LoadConfig(".env")
 	if err != nil {
 		logger.Fatal(err)
 	}
@@ -39,7 +39,7 @@ func main() {
 
 	logger.Println("database connection pool established")
 
-	app := &Application{
+	app := &application{
 		config: config,
 		logger: logger,
 		model:  data.NewModel(db),

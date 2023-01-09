@@ -1,7 +1,6 @@
 package main
 
 import (
-	"database/sql"
 	"errors"
 	"fmt"
 	"net/http"
@@ -11,10 +10,10 @@ import (
 )
 
 type Input struct {
-	Title   string       `json:"title"`
-	Year    int32        `json:"year"`
-	Runtime data.Runtime `json:"runtime"`
-	Genres  []string     `json:"genres"`
+	Title   *string       `json:"title"`
+	Year    *int32        `json:"year"`
+	Runtime *data.Runtime `json:"runtime"`
+	Genres  []string      `json:"genres"`
 }
 
 func (app *application) createMovieHandler(w http.ResponseWriter, r *http.Request) {
@@ -27,9 +26,9 @@ func (app *application) createMovieHandler(w http.ResponseWriter, r *http.Reques
 	}
 
 	movie := &data.Movie{
-		Title:   input.Title,
-		Year:    input.Year,
-		Runtime: input.Runtime,
+		Title:   *input.Title,
+		Year:    *input.Year,
+		Runtime: *input.Runtime,
 		Genres:  input.Genres,
 	}
 
@@ -91,6 +90,18 @@ func (app *application) updateMovieHandler(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
+	// Fetch existing movie by Id
+	movie, err := app.model.Movie.Get(id)
+	if err != nil {
+		switch {
+		case errors.Is(err, data.ErrRecordNotFound):
+			app.notFoundResponse(w, r)
+		default:
+			app.serverErrorResponse(w, r, err)
+		}
+		return
+	}
+
 	// Read JSON to input
 	var input Input
 
@@ -100,12 +111,20 @@ func (app *application) updateMovieHandler(w http.ResponseWriter, r *http.Reques
 	}
 
 	// Copy values from request body to movie
-	movie := &data.Movie{
-		ID:      id,
-		Title:   input.Title,
-		Year:    input.Year,
-		Runtime: input.Runtime,
-		Genres:  input.Genres,
+	if input.Title != nil {
+		movie.Title = *input.Title
+	}
+
+	if input.Year != nil {
+		movie.Year = *input.Year
+	}
+
+	if input.Runtime != nil {
+		movie.Runtime = *input.Runtime
+	}
+
+	if input.Genres != nil {
+		movie.Genres = input.Genres
 	}
 
 	// Validate movie to update
@@ -118,12 +137,7 @@ func (app *application) updateMovieHandler(w http.ResponseWriter, r *http.Reques
 	// Update movie
 	err = app.model.Movie.Update(movie)
 	if err != nil {
-		switch {
-		case errors.Is(err, sql.ErrNoRows):
-			app.notFoundResponse(w, r)
-		default:
-			app.serverErrorResponse(w, r, err)
-		}
+		app.serverErrorResponse(w, r, err)
 		return
 	}
 

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"database/sql"
 	"errors"
 	"fmt"
 	"net/http"
@@ -57,65 +58,11 @@ func (app *application) createMovieHandler(w http.ResponseWriter, r *http.Reques
 }
 
 func (app *application) showMovieHandler(w http.ResponseWriter, r *http.Request) {
-	// Get movie by Request
-	movie, ok := app.getMovieByRequest(w, r)
-	if !ok {
-		return
-	}
-
-	err := app.writeJSON(w, http.StatusOK, envelope{"movie": movie}, nil)
-	if err != nil {
-		app.serverErrorResponse(w, r, err)
-	}
-}
-
-func (app *application) updateMovieHandler(w http.ResponseWriter, r *http.Request) {
-	// Get movie by Request
-	movie, ok := app.getMovieByRequest(w, r)
-	if !ok {
-		return
-	}
-
-	// Read JSON to input
-	var input Input
-
-	err := app.readJSON(w, r, &input)
-	if err != nil {
-		app.badRequestResponse(w, r, err)
-	}
-
-	// Copy values from request body to movie
-	movie.Title = input.Title
-	movie.Year = input.Year
-	movie.Runtime = input.Runtime
-	movie.Genres = input.Genres
-
-	// Validate movie to update
-	v := validator.New()
-	if data.ValidateMovie(v, movie); !v.Valid() {
-		app.failedValidationResponse(w, r, v.Errors)
-		return
-	}
-
-	// Update movie
-	err = app.model.Movie.Update(movie)
-	if err != nil {
-		app.serverErrorResponse(w, r, err)
-		return
-	}
-
-	err = app.writeJSON(w, http.StatusOK, envelope{"movie": movie}, nil)
-	if err != nil {
-		app.serverErrorResponse(w, r, err)
-	}
-}
-
-func (app *application) getMovieByRequest(w http.ResponseWriter, r *http.Request) (*data.Movie, bool) {
 	// Parse Id
 	id, err := app.readIdParam(r)
 	if err != nil {
 		app.notFoundResponse(w, r)
-		return nil, false
+		return
 	}
 
 	// Fetch existing movie by Id
@@ -127,8 +74,61 @@ func (app *application) getMovieByRequest(w http.ResponseWriter, r *http.Request
 		default:
 			app.serverErrorResponse(w, r, err)
 		}
-		return nil, false
+		return
 	}
 
-	return movie, true
+	err = app.writeJSON(w, http.StatusOK, envelope{"movie": movie}, nil)
+	if err != nil {
+		app.serverErrorResponse(w, r, err)
+	}
+}
+
+func (app *application) updateMovieHandler(w http.ResponseWriter, r *http.Request) {
+	// Parse Id
+	id, err := app.readIdParam(r)
+	if err != nil {
+		app.notFoundResponse(w, r)
+		return
+	}
+
+	// Read JSON to input
+	var input Input
+
+	err = app.readJSON(w, r, &input)
+	if err != nil {
+		app.badRequestResponse(w, r, err)
+	}
+
+	// Copy values from request body to movie
+	movie := &data.Movie{
+		ID:      id,
+		Title:   input.Title,
+		Year:    input.Year,
+		Runtime: input.Runtime,
+		Genres:  input.Genres,
+	}
+
+	// Validate movie to update
+	v := validator.New()
+	if data.ValidateMovie(v, movie); !v.Valid() {
+		app.failedValidationResponse(w, r, v.Errors)
+		return
+	}
+
+	// Update movie
+	err = app.model.Movie.Update(movie)
+	if err != nil {
+		switch {
+		case errors.Is(err, sql.ErrNoRows):
+			app.notFoundResponse(w, r)
+		default:
+			app.serverErrorResponse(w, r, err)
+		}
+		return
+	}
+
+	err = app.writeJSON(w, http.StatusOK, envelope{"movie": movie}, nil)
+	if err != nil {
+		app.serverErrorResponse(w, r, err)
+	}
 }

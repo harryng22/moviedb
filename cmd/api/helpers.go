@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"github.com/julienschmidt/httprouter"
+	"github.com/spf13/viper"
 )
 
 func (app *application) readIdParam(r *http.Request) (int64, error) {
@@ -93,4 +94,29 @@ func (app *application) readJSON(w http.ResponseWriter, r *http.Request, dst int
 	}
 
 	return nil
+}
+
+type Config struct {
+	Port           int    `mapstructure:"PORT"`
+	Env            string `mapstructure:"ENV"`
+	DbDsn          string `mapstructure:"DB_DSN"`
+	DbMaxOpenConns int    `mapstructure:"DB_MAX_OPEN_CONNS"`
+	DbMaxIdleConns int    `mapstructure:"DB_MAX_IDLE_CONNS"`
+	DbMaxIdleTime  string `mapstructure:"DB_MAX_IDLE_TIME"`
+}
+
+func LoadConfig(path string) (config Config, err error) {
+	viper.AddConfigPath(path)
+	viper.SetConfigName("app")
+	viper.SetConfigType("env")
+
+	viper.AutomaticEnv()
+
+	err = viper.ReadInConfig()
+	if err != nil {
+		return
+	}
+
+	err = viper.Unmarshal(&config)
+	return
 }

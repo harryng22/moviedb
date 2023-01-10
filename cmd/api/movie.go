@@ -117,21 +117,7 @@ func (app *application) updateMovieHandler(w http.ResponseWriter, r *http.Reques
 	}
 
 	// Copy values from request body to movie
-	if input.Title != nil {
-		movie.Title = *input.Title
-	}
-
-	if input.Year != nil {
-		movie.Year = *input.Year
-	}
-
-	if input.Runtime != nil {
-		movie.Runtime = *input.Runtime
-	}
-
-	if input.Genres != nil {
-		movie.Genres = input.Genres
-	}
+	copyProperties(input, movie)
 
 	// Validate movie to update
 	v := validator.New()
@@ -184,4 +170,30 @@ func (app *application) deleteMovieHandler(w http.ResponseWriter, r *http.Reques
 	if err != nil {
 		app.serverErrorResponse(w, r, err)
 	}
+}
+
+func (app *application) listMoviesHandler(w http.ResponseWriter, r *http.Request) {
+	var input struct {
+		Title  string
+		Genres []string
+		data.Filter
+	}
+
+	v := validator.New()
+
+	queryString := r.URL.Query()
+
+	input.Title = app.readString(queryString, "title", "")
+	input.Genres = app.readCSV(queryString, "genres", []string{})
+	input.Page = app.readInt(queryString, "page", 1, v)
+	input.PageSize = app.readInt(queryString, "page_size", 20, v)
+	input.Sort = app.readString(queryString, "sort", "id")
+	input.SortSafeList = []string{"id", "title", "year", "runtime", "-id", "-title", "-year", "-runtime"}
+
+	if data.ValidateFilter(v, input.Filter); !v.Valid() {
+		app.failedValidationResponse(w, r, v.Errors)
+		return
+	}
+
+	fmt.Fprintf(w, "%+v\n", input)
 }

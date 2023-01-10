@@ -6,10 +6,13 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"path/filepath"
 	"strconv"
 	"strings"
 
+	"github.com/harryng22/moviedb/internal/data"
+	"github.com/harryng22/moviedb/internal/validator"
 	"github.com/julienschmidt/httprouter"
 	"github.com/spf13/viper"
 )
@@ -97,6 +100,41 @@ func (app *application) readJSON(w http.ResponseWriter, r *http.Request, dst int
 	return nil
 }
 
+func (app *application) readString(queryString url.Values, key, defaultValue string) string {
+	result := queryString.Get(key)
+
+	if result == "" {
+		return defaultValue
+	}
+
+	return result
+}
+
+func (app *application) readCSV(queryString url.Values, key string, defaultValue []string) []string {
+	csv := queryString.Get(key)
+
+	if csv == "" {
+		return defaultValue
+	}
+
+	return strings.Split(csv, ",")
+}
+
+func (app *application) readInt(queryString url.Values, key string, defaultValue int, v *validator.Validator) int {
+	s := queryString.Get(key)
+	if s == "" {
+		return defaultValue
+	}
+
+	intValue, err := strconv.Atoi(s)
+	if err != nil {
+		v.AddError(key, "must be an integer value")
+		return defaultValue
+	}
+
+	return intValue
+}
+
 type Config struct {
 	Port           int    `mapstructure:"PORT"`
 	Env            string `mapstructure:"ENV"`
@@ -120,4 +158,23 @@ func LoadConfig(filePath string) (config Config, err error) {
 
 	err = viper.Unmarshal(&config)
 	return
+}
+
+
+func copyProperties(input Input, movie *data.Movie) {
+	if input.Title != nil {
+		movie.Title = *input.Title
+	}
+
+	if input.Year != nil {
+		movie.Year = *input.Year
+	}
+
+	if input.Runtime != nil {
+		movie.Runtime = *input.Runtime
+	}
+
+	if input.Genres != nil {
+		movie.Genres = input.Genres
+	}
 }

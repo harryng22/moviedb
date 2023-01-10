@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"strconv"
 
 	"github.com/harryng22/moviedb/internal/data"
 	"github.com/harryng22/moviedb/internal/validator"
@@ -102,6 +103,11 @@ func (app *application) updateMovieHandler(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
+	if expectedVersion := r.Header.Get("X-Expected-Version"); expectedVersion != "" && expectedVersion != strconv.FormatInt(int64(movie.Version), 32) {
+		app.editConflictResponse(w, r)
+		return
+	}
+
 	// Read JSON to input
 	var input Input
 
@@ -137,7 +143,12 @@ func (app *application) updateMovieHandler(w http.ResponseWriter, r *http.Reques
 	// Update movie
 	err = app.model.Movie.Update(movie)
 	if err != nil {
-		app.serverErrorResponse(w, r, err)
+		switch {
+		case errors.Is(err, data.ErrEditConflict):
+			app.editConflictResponse(w, r)
+		default:
+			app.serverErrorResponse(w, r, err)
+		}
 		return
 	}
 

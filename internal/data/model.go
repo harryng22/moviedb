@@ -3,11 +3,12 @@ package data
 import (
 	"database/sql"
 	"errors"
+	"time"
 )
 
 var (
 	ErrRecordNotFound = errors.New("record not found")
-	ErrEditConflict = errors.New("edit conflict")
+	ErrEditConflict   = errors.New("edit conflict")
 )
 
 type Model struct {
@@ -19,9 +20,11 @@ type Model struct {
 	}
 }
 
-func NewModel(db *sql.DB) Model {
+func NewModel(db *sql.DB, contextTimeout time.Duration) Model {
 	return Model{
-		Movie: MovieModel{DB: db},
+		Movie: MovieModel{
+			DB:             db,
+			ContextTimeout: contextTimeout},
 	}
 }
 

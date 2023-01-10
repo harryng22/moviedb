@@ -11,6 +11,7 @@ import (
 
 	"github.com/harryng22/moviedb/internal/data"
 	_ "github.com/lib/pq"
+	"github.com/spf13/viper"
 )
 
 const version = "1.0.0"
@@ -39,10 +40,13 @@ func main() {
 
 	logger.Println("database connection pool established")
 
+	// Get DB Context Timeout
+	contextTimeout := viper.GetDuration("DB_CONTEXT_TIMEOUT")
+
 	app := &application{
 		config: config,
 		logger: logger,
-		model:  data.NewModel(db),
+		model:  data.NewModel(db, contextTimeout),
 	}
 
 	server := &http.Server{

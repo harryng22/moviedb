@@ -3,7 +3,6 @@ package data
 import (
 	"database/sql"
 	"errors"
-	"time"
 )
 
 var (
@@ -20,11 +19,9 @@ type Model struct {
 	}
 }
 
-func NewModel(db *sql.DB, contextTimeout time.Duration) Model {
+func NewModel(db *sql.DB) Model {
 	return Model{
-		Movie: MovieModel{
-			DB:             db,
-			ContextTimeout: contextTimeout},
+		Movie: MovieModel{DB: db},
 	}
 }
 

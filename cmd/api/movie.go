@@ -185,10 +185,10 @@ func (app *application) listMoviesHandler(w http.ResponseWriter, r *http.Request
 
 	input.Title = app.readString(queryString, "title", "")
 	input.Genres = app.readCSV(queryString, "genres", []string{})
-	input.Page = app.readInt(queryString, "page", 1, v)
-	input.PageSize = app.readInt(queryString, "page_size", 20, v)
-	input.Sort = app.readString(queryString, "sort", "id")
-	input.SortSafeList = []string{"id", "title", "year", "runtime", "-id", "-title", "-year", "-runtime"}
+	input.Filter.Page = app.readInt(queryString, "page", 1, v)
+	input.Filter.PageSize = app.readInt(queryString, "page_size", 20, v)
+	input.Filter.Sort = app.readString(queryString, "sort", "id")
+	input.Filter.SortSafeList = []string{"id", "title", "year", "runtime", "-id", "-title", "-year", "-runtime"}
 
 	if data.ValidateFilter(v, input.Filter); !v.Valid() {
 		app.failedValidationResponse(w, r, v.Errors)

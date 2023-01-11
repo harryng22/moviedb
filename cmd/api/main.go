@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/harryng22/moviedb/internal/data"
+	"github.com/harryng22/moviedb/internal/jsonlog"
 	_ "github.com/lib/pq"
 )
 
@@ -17,27 +18,27 @@ const version = "1.0.0"
 
 type application struct {
 	config Config
-	logger *log.Logger
+	logger *jsonlog.Logger
 	model  data.Model
 }
 
 func main() {
-	logger := log.New(os.Stdout, "", log.Ldate|log.Ltime)
+	logger := jsonlog.New(os.Stdout, jsonlog.LevelInfo)
 
 	config, err := LoadConfig(".env")
 	if err != nil {
-		logger.Fatal(err)
+		logger.PrintFatal(err, nil)
 	}
 
 	// db connect
 	db, err := openDB(config)
 	if err != nil {
-		logger.Fatal(err)
+		logger.PrintFatal(err, nil)
 	}
 
 	defer db.Close()
 
-	logger.Println("database connection pool established")
+	logger.PrintInfo("database connection pool established", nil)
 
 	app := &application{
 		config: config,
@@ -48,14 +49,19 @@ func main() {
 	server := &http.Server{
 		Addr:         fmt.Sprintf(":%d", config.Port),
 		Handler:      app.routes(),
+		ErrorLog:     log.New(logger, "", 0),
 		IdleTimeout:  time.Minute,
 		ReadTimeout:  10 * time.Second,
 		WriteTimeout: 30 * time.Second,
 	}
 
-	logger.Printf("Starting %s server on %s", config.Env, server.Addr)
+	logger.PrintInfo("Starting server", map[string]string{
+		"addr": server.Addr,
+		"env":  config.Env,
+	})
+
 	err = server.ListenAndServe()
-	logger.Fatal(err)
+	logger.PrintFatal(err, nil)
 }
 
 func openDB(config Config) (*sql.DB, error) {

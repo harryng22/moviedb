@@ -25,9 +25,3 @@ func NewModel(db *sql.DB) Model {
 		Movie: MovieModel{DB: db},
 	}
 }
-
-func NewMockModel() Model {
-	return Model{
-		Movie: MockMovieModel{},
-	}
-}
